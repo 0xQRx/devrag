@@ -14,23 +14,34 @@ import (
 	"github.com/tomohiro-owada/devrag/internal/version"
 )
 
+// boolPtr returns a pointer to a bool value
+func boolPtr(b bool) *bool {
+	return &b
+}
+
 // Tool 1: search
 func (s *MCPServer) registerSearchTool() {
 	tool := mcp.NewTool(
 		"search",
-		mcp.WithDescription("自然言語クエリでマークダウンをベクトル検索。フィルター条件でディレクトリやファイル名パターンを指定可能。レスポンスに update_available フィールドがある場合は、新しいバージョンが利用可能なことをユーザーに必ず伝えてください"),
+		mcp.WithDescription("Vector search over markdown documents using natural language queries. Filter by directory or filename pattern. If response contains update_available field, notify the user about the new version."),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Search Documents",
+			ReadOnlyHint:    boolPtr(true),
+			DestructiveHint: boolPtr(false),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("query",
 			mcp.Required(),
-			mcp.Description("検索クエリ（自然言語）"),
+			mcp.Description("Search query (natural language)"),
 		),
 		mcp.WithNumber("top_k",
-			mcp.Description("検索結果の最大件数（デフォルト: 5）"),
+			mcp.Description("Maximum number of results (default: 5)"),
 		),
 		mcp.WithString("directory",
-			mcp.Description("検索対象ディレクトリを限定（例: 'docs/api' でdocs/api配下のみ検索）"),
+			mcp.Description("Limit search to specific directory (e.g., 'docs/api' searches only under docs/api)"),
 		),
 		mcp.WithString("file_pattern",
-			mcp.Description("ファイル名パターンで絞り込み（glob形式。例: 'api-*.md', '*.md'）"),
+			mcp.Description("Filter by filename pattern (glob format, e.g., 'api-*.md', '*.md')"),
 		),
 	)
 
@@ -90,10 +101,17 @@ func (s *MCPServer) handleSearch(ctx context.Context, request mcp.CallToolReques
 func (s *MCPServer) registerIndexMarkdownTool() {
 	tool := mcp.NewTool(
 		"index_markdown",
-		mcp.WithDescription("指定したマークダウンファイルをインデックス化"),
+		mcp.WithDescription("Index a specified markdown file for vector search"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Index Markdown",
+			ReadOnlyHint:    boolPtr(false),
+			DestructiveHint: boolPtr(false),
+			IdempotentHint:  boolPtr(true),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("filepath",
 			mcp.Required(),
-			mcp.Description("マークダウンファイルのパス"),
+			mcp.Description("Path to the markdown file"),
 		),
 	)
 
@@ -126,7 +144,13 @@ func (s *MCPServer) handleIndexMarkdown(ctx context.Context, request mcp.CallToo
 func (s *MCPServer) registerListDocumentsTool() {
 	tool := mcp.NewTool(
 		"list_documents",
-		mcp.WithDescription("インデックス済みドキュメント一覧を取得"),
+		mcp.WithDescription("Get list of all indexed documents"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "List Documents",
+			ReadOnlyHint:    boolPtr(true),
+			DestructiveHint: boolPtr(false),
+			OpenWorldHint:   boolPtr(false),
+		}),
 	)
 
 	s.server.AddTool(tool, s.handleListDocuments)
@@ -156,13 +180,19 @@ func (s *MCPServer) handleListDocuments(ctx context.Context, request mcp.CallToo
 func (s *MCPServer) registerDeleteDocumentTool() {
 	tool := mcp.NewTool(
 		"delete_document",
-		mcp.WithDescription("ドキュメントをインデックスから削除。delete_file=trueの場合は物理ファイルも削除"),
+		mcp.WithDescription("Remove document from index. Set delete_file=true to also delete the physical file"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Delete Document",
+			ReadOnlyHint:    boolPtr(false),
+			DestructiveHint: boolPtr(true),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("filename",
 			mcp.Required(),
-			mcp.Description("削除するファイル名"),
+			mcp.Description("Filename to delete"),
 		),
 		mcp.WithBoolean("delete_file",
-			mcp.Description("物理ファイルも削除するかどうか（デフォルト: false）"),
+			mcp.Description("Also delete the physical file (default: false)"),
 		),
 	)
 
@@ -209,10 +239,17 @@ func (s *MCPServer) handleDeleteDocument(ctx context.Context, request mcp.CallTo
 func (s *MCPServer) registerReindexDocumentTool() {
 	tool := mcp.NewTool(
 		"reindex_document",
-		mcp.WithDescription("ドキュメントを削除して再インデックス化"),
+		mcp.WithDescription("Delete and re-index a document"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Reindex Document",
+			ReadOnlyHint:    boolPtr(false),
+			DestructiveHint: boolPtr(false),
+			IdempotentHint:  boolPtr(true),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("filename",
 			mcp.Required(),
-			mcp.Description("再インデックス化するファイル名"),
+			mcp.Description("Filename to re-index"),
 		),
 	)
 
@@ -245,25 +282,31 @@ func (s *MCPServer) handleReindexDocument(ctx context.Context, request mcp.CallT
 func (s *MCPServer) registerAddFrontmatterTool() {
 	tool := mcp.NewTool(
 		"add_frontmatter",
-		mcp.WithDescription("マークダウンファイルにメタデータ（frontmatter）を追加"),
+		mcp.WithDescription("Add metadata (frontmatter) to a markdown file"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Add Frontmatter",
+			ReadOnlyHint:    boolPtr(false),
+			DestructiveHint: boolPtr(false),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("filepath",
 			mcp.Required(),
-			mcp.Description("マークダウンファイルのパス"),
+			mcp.Description("Path to the markdown file"),
 		),
 		mcp.WithString("domain",
-			mcp.Description("領域: frontend | backend | mobile | infrastructure | other"),
+			mcp.Description("Domain: frontend | backend | mobile | infrastructure | other"),
 		),
 		mcp.WithString("docType",
-			mcp.Description("文書種別: spec | design | api | guide | note | other"),
+			mcp.Description("Document type: spec | design | api | guide | note | other"),
 		),
 		mcp.WithString("language",
-			mcp.Description("言語: go | typescript | python | rust | java | kotlin | swift | other"),
+			mcp.Description("Language: go | typescript | python | rust | java | kotlin | swift | other"),
 		),
 		mcp.WithString("tags",
-			mcp.Description("タグ（カンマ区切り）: authentication, database, caching"),
+			mcp.Description("Tags (comma-separated): authentication, database, caching"),
 		),
 		mcp.WithString("project",
-			mcp.Description("プロジェクト名（任意）"),
+			mcp.Description("Project name (optional)"),
 		),
 	)
 
@@ -317,25 +360,31 @@ func (s *MCPServer) handleAddFrontmatter(ctx context.Context, request mcp.CallTo
 func (s *MCPServer) registerUpdateFrontmatterTool() {
 	tool := mcp.NewTool(
 		"update_frontmatter",
-		mcp.WithDescription("マークダウンファイルのメタデータ（frontmatter）を更新"),
+		mcp.WithDescription("Update metadata (frontmatter) in a markdown file"),
+		mcp.WithToolAnnotation(mcp.ToolAnnotation{
+			Title:           "Update Frontmatter",
+			ReadOnlyHint:    boolPtr(false),
+			DestructiveHint: boolPtr(false),
+			OpenWorldHint:   boolPtr(false),
+		}),
 		mcp.WithString("filepath",
 			mcp.Required(),
-			mcp.Description("マークダウンファイルのパス"),
+			mcp.Description("Path to the markdown file"),
 		),
 		mcp.WithString("domain",
-			mcp.Description("領域: frontend | backend | mobile | infrastructure | other"),
+			mcp.Description("Domain: frontend | backend | mobile | infrastructure | other"),
 		),
 		mcp.WithString("docType",
-			mcp.Description("文書種別: spec | design | api | guide | note | other"),
+			mcp.Description("Document type: spec | design | api | guide | note | other"),
 		),
 		mcp.WithString("language",
-			mcp.Description("言語: go | typescript | python | rust | java | kotlin | swift | other"),
+			mcp.Description("Language: go | typescript | python | rust | java | kotlin | swift | other"),
 		),
 		mcp.WithString("tags",
-			mcp.Description("タグ（カンマ区切り）: authentication, database, caching"),
+			mcp.Description("Tags (comma-separated): authentication, database, caching"),
 		),
 		mcp.WithString("project",
-			mcp.Description("プロジェクト名（任意）"),
+			mcp.Description("Project name (optional)"),
 		),
 	)
 
