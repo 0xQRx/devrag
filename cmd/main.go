@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/tomohiro-owada/devrag/internal/config"
 	"github.com/tomohiro-owada/devrag/internal/embedder"
@@ -49,8 +50,8 @@ func main() {
 	fmt.Fprintf(os.Stderr, "[INFO] Model: %s (dimensions: %d)\n", cfg.Model.Name, cfg.Model.Dimensions)
 	fmt.Fprintf(os.Stderr, "[INFO] Device: %s\n", cfg.Compute.Device)
 
-	// 2. Download model files if needed
-	modelDir := "models"
+	// 2. Download model files if needed (use config directory for model storage)
+	modelDir := filepath.Join(cfg.ConfigDir, "models")
 	if err := embedder.DownloadModelFiles(modelDir); err != nil {
 		fmt.Fprintf(os.Stderr, "[FATAL] Failed to download model files: %v\n", err)
 		os.Exit(1)
@@ -82,7 +83,7 @@ func main() {
 	// Note: Model file is required for production use
 	// For testing purposes, we'll use mock embedder if model is not available
 	var emb embedder.Embedder
-	modelPath := "models/multilingual-e5-small/model.onnx"
+	modelPath := filepath.Join(modelDir, "multilingual-e5-small", "model.onnx")
 	if _, err := os.Stat(modelPath); err == nil {
 		emb, err = embedder.NewONNXEmbedder(modelPath, device)
 		if err != nil {

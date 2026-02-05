@@ -24,6 +24,9 @@ type Config struct {
 		Name       string `json:"name"`
 		Dimensions int    `json:"dimensions"`
 	} `json:"model"`
+
+	// ConfigDir is the directory containing the config file (computed, not from JSON)
+	ConfigDir string `json:"-"`
 }
 
 // IsUpdateCheckEnabled returns whether update checking is enabled (default: true)
@@ -56,10 +59,18 @@ func Load(configPath string) (*Config, error) {
 		configPath = "config.json"
 	}
 
+	// Compute the config directory (absolute path)
+	absConfigPath, err := filepath.Abs(configPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve config path: %w", err)
+	}
+	configDir := filepath.Dir(absConfigPath)
+
 	// Check if config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		fmt.Fprintf(os.Stderr, "[INFO] %s not found, using defaults\n", configPath)
 		cfg := DefaultConfig()
+		cfg.ConfigDir = configDir
 
 		// Only generate template if using default path
 		if configPath == "config.json" {
@@ -109,6 +120,9 @@ func Load(configPath string) (*Config, error) {
 	if len(cfg.DocumentPatterns) == 0 {
 		cfg.DocumentPatterns = []string{"./documents"}
 	}
+
+	// Set the config directory
+	cfg.ConfigDir = configDir
 
 	fmt.Fprintf(os.Stderr, "[INFO] Loaded configuration from %s\n", configPath)
 	return cfg, nil
