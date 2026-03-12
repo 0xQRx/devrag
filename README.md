@@ -221,6 +221,46 @@ Re-index a document
 **Parameters:**
 - `filepath` (string): Path to the file to re-index
 
+## Multiple Instances (Per-Project Databases)
+
+You can run separate DevRag instances for different Claude Code projects, each with its own database and document set. Since DevRag communicates over stdio, each Claude Code instance spawns its own isolated process — no conflicts.
+
+**Step 1: Create a config per project**
+
+`project-a/config.json`:
+```json
+{
+  "document_patterns": ["./docs"],
+  "db_path": "./vectors.db"
+}
+```
+
+`project-b/config.json`:
+```json
+{
+  "document_patterns": ["./docs"],
+  "db_path": "./vectors.db"
+}
+```
+
+**Step 2: Point each Claude Code instance to its config**
+
+In each project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "devrag": {
+      "type": "stdio",
+      "command": "/usr/local/bin/devrag",
+      "args": ["--config", "/path/to/project-a/config.json"]
+    }
+  }
+}
+```
+
+Each instance gets its own database, document index, and search scope — fully isolated.
+
 ## Team Development
 
 Perfect for teams with large documentation repositories:
