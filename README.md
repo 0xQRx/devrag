@@ -30,9 +30,16 @@ When using Claude Code, reading documents with the Read tool consumes massive am
 
 ## Quick Start
 
-### 1. Download Binary
+### 1. Install
 
-Get the appropriate binary from [Releases](https://github.com/tomohiro-owada/devrag/releases):
+**From source (requires Go 1.23+ and CGO):**
+```bash
+git clone https://github.com/0xQRx/devrag.git
+cd devrag
+CGO_ENABLED=1 go build -o ~/go/bin/devrag ./cmd/main.go
+```
+
+**Or download a pre-built binary from [Releases](https://github.com/0xQRx/devrag/releases):**
 
 | Platform | File |
 |----------|------|
